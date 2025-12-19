@@ -1,0 +1,52 @@
+---
+- name: MySQL DB setup for PHP application
+  hosts: dbserver
+  become: yes
+
+  vars:
+    mysql_root_user: root
+    mysql_root_password: "123"
+    mysql_database: user
+
+  tasks:
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install MySQL server and Python dependency
+      ansible.builtin.apt:
+        name:
+          - mysql-server
+          - python3-pymysql
+        state: present
+
+    - name: Start and enable MySQL service
+      ansible.builtin.systemd:
+        name: mysql
+        state: started
+        enabled: true
+
+    # ROOT PASSWORD MUST ALREADY BE SET MANUALLY ONCE
+    # sudo mysql
+    # ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123';
+    # FLUSH PRIVILEGES;
+
+    - name: Create database
+      ansible.builtin.mysql_db:
+        login_user: "{{ mysql_root_user }}"
+        login_password: "{{ mysql_root_password }}"
+        name: "{{ mysql_database }}"
+        state: present
+
+    - name: Create users table
+      ansible.builtin.mysql_query:
+        login_user: "{{ mysql_root_user }}"
+        login_password: "{{ mysql_root_password }}"
+        login_db: "{{ mysql_database }}"
+        query: |
+          CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            email VARCHAR(100) NOT NULL
+          );

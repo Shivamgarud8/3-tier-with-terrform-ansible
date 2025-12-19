@@ -1,0 +1,53 @@
+---
+- name: Install LAMP server on Ubuntu target
+  hosts: appserver
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Nginx, PHP, PHP-FPM, and MySQL client
+      ansible.builtin.apt:
+        name:
+          - nginx
+          - php
+          - php-fpm
+          - php-mysql
+          - mysql-client
+        state: present
+
+    - name: Start and enable services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - php8.3-fpm  
+
+    - name: Deploy PHP backend file
+      ansible.builtin.copy:
+        dest: /var/www/html/submit.php
+        content: |
+          <?php
+          $conn = new mysqli("DB_SERVER_IP", "root", "123", "users");
+
+          if ($conn->connect_error) {
+              die("DB Connection Failed");
+          }
+
+          $name  = $_POST['name'];
+          $email = $_POST['email'];
+
+          $sql = "INSERT INTO users (name, email) VALUES ('$name', '$email')";
+
+          if ($conn->query($sql) === TRUE) {
+              echo "Data Saved Successfully";
+          } else {
+              echo "Error Saving Data";
+          }
+
+          $conn->close();
+          ?>

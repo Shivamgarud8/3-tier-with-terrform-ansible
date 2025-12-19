@@ -1,0 +1,46 @@
+---
+- name: Install LAMP server on Ubuntu target
+  hosts: webserver
+  become: yes
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Nginx, PHP, PHP-FPM, and MariaDB
+      ansible.builtin.apt:
+        name:
+          - nginx
+          - php
+          - php-fpm
+          - mariadb-server
+        state: present
+
+    - name: Start and enable services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - mariadb
+        - php8.3-fpm  # Adjust according to your PHP version
+
+    - name: Deploy Ubuntu web page with PHP info link
+      ansible.builtin.copy:
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head><title>User Form</title></head>
+          <body>
+            <h2>User Registration</h2>
+            <form action="http://51.21.197.12/submit.php" method="POST">
+              Name: <input type="text" name="name"><br><br>
+              Email: <input type="email" name="email"><br><br>
+              <input type="submit">
+            </form>
+          </body>
+          </html>
+        dest: /var/www/html/submit.html
+  
+
